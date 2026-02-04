@@ -1,273 +1,233 @@
 options:
     p: &8[&6AutoComp&8]
-    owner: benjighg9147
     c_name: &6&lMulti-Compressor
     
-    # GUI Namen
-    t_hub: &8» &6AutoComp Menü
-    t_list: &8» &6Kategorien Liste
+    # GUI Titel
+    t_main: &8» &6AutoComp Hub
+    t_manage: &8» &6AutoComp Verwalten
     t_setup: &8» &6Setup: &b
+    t_select: &8» &6Wähle Kategorien
+    t_detail: &8» &6Rezepte: &b
 
-# --- 1. FUNKTIONEN ---
+# --- 1. TAB COMPLETION ---
+on tab complete of "/autocomp":
+    set tab completions for position 1 to "get", "gui", "list"
+    if tab arg 1 is "gui" or "list":
+        set tab completions for position 2 to {ac_cats::*}
 
-function ac_open_hub(p: player):
-    set {_gui} to chest inventory with 3 rows named "{@t_hub}"
-    set metadata tag "ac_menu" of {_p} to "hub"
+# --- 2. HAUPTBEFEHL ---
+command /autocomp [<text>] [<text>]:
+    trigger:
+        if arg-1 is not set:
+            open_main_menu(player)
+            stop
+        
+        if arg-1 is "get":
+            set {ac_rename::%player's uuid%} to true
+            send "{@p} &6Schreibe den Namen für den Compressor in den Chat!" to player
+            stop
+        if arg-1 is "gui":
+            open_setup(player, arg-2)
+
+# --- 3. GUI FUNKTIONEN ---
+
+function open_main_menu(p: player):
+    set {_gui} to chest inventory with 3 rows named "{@t_main}"
     loop 27 times:
         set slot (loop-number - 1) of {_gui} to gray stained glass pane named " "
-    
-    set slot 11 of {_gui} to minecart with hopper named "&e&lITEM ERSTELLEN" with lore "&7Klicke hier, um den", "&7Namen einzugeben."
-    
-    if name of {_p} is "{@owner}":
-        set slot 15 of {_gui} to chest named "&b&lVERWALTEN" with lore "&7Kategorien löschen", "&7oder neue erstellen."
-    else:
-        set slot 15 of {_gui} to barrier named "&c&lLOCKED" with lore "&7Nur für {@owner}"
-        
+    set slot 11 of {_gui} to minecart with hopper named "&6&lGET COMPRESSOR" with lore "&7Hol dir das Item für die Offhand."
+    set slot 15 of {_gui} to chest named "&b&lAUTO COMPS" with lore "&7Verwalte deine Kategorien", "&7und erstelle neue Rezepte."
     open {_gui} to {_p}
 
-function ac_open_list(p: player):
-    set {_gui} to chest inventory with 6 rows named "{@t_list}"
-    set metadata tag "ac_menu" of {_p} to "list"
-    
+function open_category_manager(p: player):
+    set {_gui} to chest inventory with 6 rows named "{@t_manage}"
     set {_s} to 0
-    loop {comp_categories::*}:
-        set slot {_s} of {_gui} to book named "&e%loop-value%" with lore "&7Kategorie: &8%loop-value%", "&f", "&7Rechtsklick: &c&lLÖSCHEN"
+    loop {ac_cats::*}:
+        set slot {_s} of {_gui} to book named "&b&l%loop-value%" with lore "&7Links: &fRezepte ansehen", "&7Rechts: &c&lLÖSCHEN"
         add 1 to {_s}
-    
-    set slot 49 of {_gui} to anvil named "&a&lNEUE KATEGORIE" with lore "&7Klicke hier, um eine", "&7neue Kategorie zu erstellen."
+    set slot 49 of {_gui} to anvil named "&a&lNEUE KATEGORIE" with lore "&7Klicke hier, um den Namen", "&7im Chat einzugeben."
     set slot 53 of {_gui} to barrier named "&c&lZURÜCK"
     open {_gui} to {_p}
 
-function ac_open_setup(p: player, cat: text):
+function open_setup(p: player, cat: text):
     set {_gui} to chest inventory with 5 rows named "{@t_setup}%{_cat}%"
-    set metadata tag "ac_menu" of {_p} to "setup"
-    set metadata tag "ac_cat" of {_p} to {_cat}
-    
     loop 45 times:
         set slot (loop-number - 1) of {_gui} to gray stained glass pane named " "
-    
     set slot 20 of {_gui} to air 
     set slot 24 of {_gui} to air 
-    set slot 40 of {_gui} to lime wool named "&a&lSPEICHERN"
-    set slot 44 of {_gui} to barrier named "&c&lABBRECHEN"
+    set slot 40 of {_gui} to lime wool named "&a&lREZEPT SPEICHERN"
+    set slot 44 of {_gui} to barrier named "&c&lZURÜCK"
     open {_gui} to {_p}
 
-function ac_open_selector(p: player):
-    set {_gui} to chest inventory with 6 rows named "&8» &6Wähle Kategorien"
-    set metadata tag "ac_menu" of {_p} to "selector"
-    set {_item} to {_p}'s tool
-    set {_lore} to "%lore of {_item}%"
+# --- 4. CHAT-NAMING LOGIK (STATT SCHILD) ---
+
+on chat:
+    if {ac_rename::%player's uuid%} is set:
+        cancel event
+        delete {ac_rename::%player's uuid%}
+        set {_name} to colored message
+        give_compressor(player, {_name})
+        send "{@p} &aCompressor erhalten: %{_name}%" to player
+        stop
+
+    if {ac_naming::%player's uuid%} is set:
+        cancel event
+        set {_name} to message
+        delete {ac_naming::%player's uuid%}
+        if {_name} contains " ":
+            send "{@p} &cBitte keine Leerzeichen im Namen!" to player
+            stop
+        send "{@p} &aErstelle Kategorie: &e%{_name}%..." to player
+        wait 2 ticks
+        open_setup(player, {_name})
+
+# --- 5. KLICK-LOGIK ---
+
+on inventory click:
+    set {_title} to uncolored name of event-inventory
+    
+    # HAUPTMENÜ
+    if {_title} is uncolored "{@t_main}":
+        cancel event
+        if index of event-slot is 11:
+            set {ac_rename::%player's uuid%} to true
+            close player's inventory
+            send "{@p} &6Schreibe den Namen für den Compressor in den Chat!" to player
+        if index of event-slot is 15:
+            open_category_manager(player)
+
+    # KATEGORIE MANAGER
+    if {_title} is uncolored "{@t_manage}":
+        cancel event
+        if event-slot is book:
+            set {_cat} to uncolored name of event-slot
+            if click type is left mouse button:
+                open_recipe_view(player, {_cat})
+            else if click type is right mouse button:
+                delete_category(player, {_cat})
+        
+        if index of event-slot is 49: # NEUE KATEGORIE
+            set {ac_naming::%player's uuid%} to true
+            close player's inventory
+            send " " to player
+            send "{@p} &6&lBITTE TIPP DEN NAMEN IN DEN CHAT!" to player
+            send "&7(Beispiel: Erze oder Lapis)" to player
+            send " " to player
+            
+        if index of event-slot is 53:
+            open_main_menu(player)
+
+    # SETUP LOGIK
+    if {_title} contains "Setup:":
+        if clicked inventory is player's inventory:
+            stop
+        if index of event-slot is 20 or 24:
+            stop
+        cancel event
+        if index of event-slot is 40: # SPEICHERN
+            set {_cat} to {_title}
+            replace all "Setup: " with "" in {_cat}
+            set {_in} to slot 20 of event-inventory
+            set {_out} to slot 24 of event-inventory
+            if {_in} is air or {_out} is air:
+                send "{@p} &cSlots füllen!" to player
+                stop
+            if {ac_cats::*} does not contain {_cat}:
+                add {_cat} to {ac_cats::*}
+            add 1 to {ac_count::%{_cat}%}
+            set {ac_in::%{_cat}%::%{ac_count::%{_cat}%}%} to {_in}
+            set {ac_out::%{_cat}%::%{ac_count::%{_cat}%}%} to {_out}
+            send "{@p} &aGespeichert!" to player
+            open_category_manager(player)
+        
+        if index of event-slot is 44:
+            open_category_manager(player)
+
+    # SELECTOR (Dyes)
+    if {_title} is uncolored "{@t_select}":
+        cancel event
+        if event-slot is lime dye or gray dye:
+            set {_cat} to uncolored name of event-slot
+            set {_item} to player's offhand tool
+            set {_lore::*} to lore of {_item}
+            if lore of {_item} contains "&8- &e%{_cat}%":
+                remove "&8- &e%{_cat}%" from {_lore::*}
+            else:
+                remove "&8- &7(Keine)" from {_lore::*}
+                add "&8- &e%{_cat}%" to {_lore::*}
+            set lore of {_item} to {_lore::*}
+            set player's offhand tool to {_item}
+            open_selector(player)
+
+# --- 6. HILFSFUNKTIONEN & LOGIK ---
+
+function delete_category(p: player, cat: text):
+    delete {ac_in::%{_cat}%::*}
+    delete {ac_out::%{_cat}%::*}
+    delete {ac_count::%{_cat}%}
+    remove {_cat} from {ac_cats::*}
+    send "{@p} &cKategorie &e%{_cat}% &cgelöscht!" to {_p}
+    open_category_manager({_p})
+
+function open_recipe_view(p: player, cat: text):
+    set {_gui} to chest inventory with 6 rows named "{@t_detail}%{_cat}%"
     set {_s} to 0
-    loop {comp_categories::*}:
-        if {_lore} contains "%loop-value%":
-            set slot {_s} of {_gui} to lime dye named "&a&l%loop-value%" with lore "&7Status: &aAN"
+    loop {ac_in::%{_cat}%::*}:
+        set slot {_s} of {_gui} to {ac_out::%{_cat}%::%loop-index%} with lore "&e&lREZEPT:", "&7In: &f%item amount of {ac_in::%{_cat}%::%loop-index%]}%x %type of {ac_in::%{_cat}%::%loop-index%]}%"
+        add 1 to {_s}
+    set slot 53 of {_gui} to barrier named "&c&lZURÜCK"
+    open {_gui} to {_p}
+
+function open_selector(p: player):
+    set {_gui} to chest inventory with 6 rows named "{@t_select}"
+    set {_item} to {_p}'s offhand tool
+    set {_s} to 0
+    loop {ac_cats::*}:
+        if lore of {_item} contains "&8- &e%loop-value%":
+            set slot {_s} of {_gui} to lime dye named "&a&l%loop-value%"
         else:
-            set slot {_s} of {_gui} to gray dye named "&7&l%loop-value%" with lore "&7Status: &cAUS"
+            set slot {_s} of {_gui} to gray dye named "&7&l%loop-value%"
         add 1 to {_s}
     open {_gui} to {_p}
 
-# --- 2. COMMAND ---
-
-command /autocomp:
-    trigger:
-        if name of player is not "{@owner}":
-            send "{@p} &cDieser Befehl ist nur für {@owner}"
-            stop
-        ac_open_hub(player)
-
-# --- 3. KLICK LOGIK (DER WICHTIGE TEIL) ---
-
-on inventory click:
-    set {_tag} to metadata tag "ac_menu" of player
-    if {_tag} is not set:
-        stop
-    
-    # --- SETUP FIX ANFANG ---
-    # Hier erlauben wir das Klicken im Setup-Menü VOR dem Cancel Event
-    if {_tag} is "setup":
-        # Wenn man ins eigene Inventar klickt -> Erlauben
-        if clicked inventory is player's inventory:
-            uncancel event
-            stop
-        # Wenn man auf Slot 20 oder 24 klickt -> Erlauben
-        if index of event-slot is 20 or 24:
-            uncancel event
-            stop
-    # --- SETUP FIX ENDE ---
-
-    cancel event # Alles andere wird blockiert
-    
-    # === HUB ===
-    if {_tag} is "hub":
-        if index of event-slot is 11:
-            set {ac_chat_rename::%player's uuid%} to true
-            close player's inventory
-            send "{@p} &6Schreibe den Namen für das Item in den Chat!"
-        
-        if index of event-slot is 15:
-            if name of player is "{@owner}":
-                ac_open_list(player)
-            else:
-                send "{@p} &cDas darf nur der Owner."
-
-    # === LISTE ===
-    if {_tag} is "list":
-        if event-item is book:
-            if click type is right mouse button:
-                if name of player is "{@owner}":
-                    set {_l::*} to lore of event-item
-                    set {_cat_raw} to {_l::1}
-                    replace all "&7Kategorie: &8" with "" in {_cat_raw}
-                    
-                    delete {comp_in::%{_cat_raw}%::*}, {comp_out::%{_cat_raw}%::*}, {recipe_count::%{_cat_raw}%}
-                    remove {_cat_raw} from {comp_categories::*}
-                    
-                    send "{@p} &cKategorie '%{_cat_raw}%' gelöscht!"
-                    play sound "block.lava.extinguish" to player
-                    ac_open_list(player)
-        
-        if index of event-slot is 49:
-            if name of player is "{@owner}":
-                set {ac_chat_newcat::%player's uuid%} to true
-                close player's inventory
-                send "{@p} &6Name der neuen Kategorie in den Chat schreiben!"
-        
-        if index of event-slot is 53:
-            ac_open_hub(player)
-
-    # === SETUP SPEICHERN ===
-    if {_tag} is "setup":
-        if index of event-slot is 40: # Speichern Button
-            if name of player is not "{@owner}":
-                send "{@p} &cNur {@owner} kann Rezepte erstellen."
-                stop
-            set {_cat} to metadata tag "ac_cat" of player
-            set {_in} to slot 20 of event-inventory
-            set {_out} to slot 24 of event-inventory
-            
-            if {_in} is not air:
-                if {comp_categories::*} does not contain {_cat}:
-                    add {_cat} to {comp_categories::*}
-                
-                add 1 to {recipe_count::%{_cat}%}
-                set {comp_in::%{_cat}%::%{recipe_count::%{_cat}%}%} to {_in}
-                set {comp_out::%{_cat}%::%{recipe_count::%{_cat}%}%} to {_out}
-                
-                send "{@p} &aRezept gespeichert!"
-                set slot 20 of event-inventory to air
-                set slot 24 of event-inventory to air
-                play sound "block.note_block.pling" to player
-            else:
-                send "{@p} &cInput Item fehlt!"
-
-        if index of event-slot is 44:
-            ac_open_list(player)
-
-    # === SELECTOR ===
-    if {_tag} is "selector":
-        if event-item is lime dye or gray dye:
-            set {_cat} to uncolored name of event-item
-            set {_item} to player's tool
-            set {_l::*} to lore of {_item}
-            
-            set {_found} to false
-            loop {_l::*}:
-                if loop-value contains {_cat}:
-                    remove loop-value from {_l::*}
-                    set {_found} to true
-            
-            if {_found} is false:
-                remove "&8- &7(Keine)" from {_l::*}
-                add "&8- &e%{_cat}%" to {_l::*}
-            
-            if size of {_l::*} < 4:
-                add "&8- &7(Keine)" to {_l::*}
-
-            set lore of {_item} to {_l::*}
-            set player's tool to {_item}
-            wait 1 tick
-            ac_open_selector(player)
-
-# --- 4. CHAT INPUTS ---
-
-on chat:
-    # Item Benennen
-    if {ac_chat_rename::%player's uuid%} is set:
-        cancel event
-        delete {ac_chat_rename::%player's uuid%}
-        set {_name} to colored message
-        set {_i} to minecart with hopper named {_name}
-        set lore of {_i} to "&7Status: &c&lAUS", "&f", "&6Aktive Kategorien:", "&8- &7(Keine)", "&f", "&eSneak + Rechts: &aAn/Aus", "&eSneak + Links: &bKategorien"
-        give {_i} to player
-        send "{@p} &aItem erhalten: %{_name}%"
-        stop
-
-    # Neue Kategorie
-    if {ac_chat_newcat::%player's uuid%} is set:
-        cancel event
-        delete {ac_chat_newcat::%player's uuid%}
-        if message is "abbruch":
-            ac_open_list(player)
-            stop
-        set {_name} to uncolored message
-        wait 1 tick
-        ac_open_setup(player, {_name})
-
-# --- 5. CLEANUP ---
-
-on inventory close:
-    if metadata tag "ac_menu" of player is "setup":
-        # Items zurückgeben, damit sie nicht verloren gehen
-        if slot 20 of player's open inventory is not air:
-            give slot 20 of player's open inventory to player
-        if slot 24 of player's open inventory is not air:
-            give slot 24 of player's open inventory to player
-    delete metadata tag "ac_menu" of player
-    delete metadata tag "ac_cat" of player
-
-# --- 6. INTERAKTIONEN ---
+function give_compressor(p: player, name: text):
+    set {_i} to minecart with hopper named "%{_name}%"
+    set lore of {_i} to "&7Status: &c&lAUS", "&f", "&6Aktive Kategorien:", "&8- &7(Keine)", "&f", "&eSneak+Links: &bWähle Kategorien", "&eSneak+Rechts: &aAn/Aus"
+    give {_i} to {_p}
 
 on leftclick:
     if player is sneaking:
-        if lore of player's tool contains "&eSneak + Links: &bKategorien":
-            cancel event
-            if name of player is "{@owner}":
-                ac_open_selector(player)
-            else:
-                send "{@p} &cDu darfst die Kategorien nicht ändern!" to player
-
-on rightclick:
+        if lore of {_item} does not contain "&eSneak+Links: &bWähle Kategorien":
+        if lore of {_item} contains "&eSneak+Links: &bWähle Kategorien":
+            open_selector(player)
     if player is sneaking:
-        if lore of player's tool contains "&eSneak + Rechts: &aAn/Aus":
-            cancel event
-            set {_l::*} to lore of player's tool
-            if {_l::1} contains "AUS":
+        set {_offhand} to false
+        if lore of {_item} does not contain "&eSneak+Rechts: &aAn/Aus":
+            set {_offhand} to true
+        if lore of {_item} contains "&eSneak+Rechts: &aAn/Aus":
                 set {_l::1} to "&7Status: &a&lAN"
-                send action bar "&a&lAutoComp aktiviert" to player
             else:
                 set {_l::1} to "&7Status: &c&lAUS"
-                send action bar "&c&lAutoComp deaktiviert" to player
-            set lore of player's tool to {_l::*}
+            if {_offhand} is true:
             play sound "block.iron_trapdoor.open" to player
 
-# --- 7. TURBO LOOP ---
-
-every 1 second:
+# TURBO-MATH FÜR FORTUNE 255
+every 2 ticks:
     loop all players:
         set {_off} to loop-player's offhand tool
-        if lore of {_off} contains "Status: &a&lAN":
-            loop lore of {_off}:
-                if loop-value-2 contains "&8- &e":
-                    set {_cat} to loop-value-2
-                    replace all "&8- &e" with "" in {_cat}
-                    
-                    loop {comp_in::%{_cat}%::*}:
-                        set {_i} to loop-index
-                        set {_in} to {comp_in::%{_cat}%::%{_i}%}
-                        set {_out} to {comp_out::%{_cat}%::%{_i}%}
-                        
-                        set {_req} to item amount of {_in}
-                        if amount of {_in} in loop-player's inventory >= {_req}:
-                            set {_m} to floor(amount of {_in} in loop-player's inventory / {_req})
-                            remove ({_m} * {_req}) of {_in} from loop-player's inventory
-                            give ({_m} * item amount of {_out}) of {_out} to loop-player
+        if lore of {_off} contains "&eSneak+Rechts: &aAn/Aus":
+            if line 1 of lore of {_off} contains "AN":
+                loop lore of {_off}:
+                    if loop-value-2 contains "&8- &e":
+                        set {_cat} to loop-value-2
+                        replace all "&8- &e" with "" in {_cat}
+                        loop {ac_in::%{_cat}%::*}:
+                            set {_id} to loop-index
+                            set {_in} to {ac_in::%{_cat}%::%{_id}%}
+                            set {_out} to {ac_out::%{_cat}%::%{_id}%}
+                            set {_req} to item amount of {_in}
+                            set {_has} to amount of {_in} in loop-player's inventory
+                            if {_has} >= {_req}:
+                                set {_mult} to floor({_has} / {_req})
+                                remove ({_mult} * {_req}) of {_in} from loop-player's inventory
+                                give ({_mult} * item amount of {_out}) of {_out} to loop-player
