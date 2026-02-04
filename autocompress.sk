@@ -11,23 +11,25 @@ options:
 # --- 1. FUNKTIONEN ---
 
 function ac_open_hub(p: player):
+    set {_p} to p
     set {_gui} to chest inventory with 3 rows named "{@t_hub}"
-    set metadata tag "ac_menu" of p to "hub"
+    set metadata tag "ac_menu" of {_p} to "hub"
     loop 27 times:
         set slot (loop-number - 1) of {_gui} to gray stained glass pane named " "
     
     set slot 11 of {_gui} to minecart with hopper named "&e&lITEM ERSTELLEN" with lore "&7Klicke hier, um den", "&7Namen einzugeben."
     
-    if name of p is "{@owner}":
+    if name of {_p} is "{@owner}":
         set slot 15 of {_gui} to chest named "&b&lVERWALTEN" with lore "&7Kategorien löschen", "&7oder neue erstellen."
     else:
         set slot 15 of {_gui} to barrier named "&c&lLOCKED" with lore "&7Nur für {@owner}"
         
-    open {_gui} to p
+    open {_gui} to {_p}
 
 function ac_open_list(p: player):
+    set {_p} to p
     set {_gui} to chest inventory with 6 rows named "{@t_list}"
-    set metadata tag "ac_menu" of p to "list"
+    set metadata tag "ac_menu" of {_p} to "list"
     
     set {_s} to 0
     loop {comp_categories::*}:
@@ -36,12 +38,13 @@ function ac_open_list(p: player):
     
     set slot 49 of {_gui} to anvil named "&a&lNEUE KATEGORIE" with lore "&7Klicke hier, um eine", "&7neue Kategorie zu erstellen."
     set slot 53 of {_gui} to barrier named "&c&lZURÜCK"
-    open {_gui} to p
+    open {_gui} to {_p}
 
 function ac_open_setup(p: player, cat: text):
+    set {_p} to p
     set {_gui} to chest inventory with 5 rows named "{@t_setup}%{_cat}%"
-    set metadata tag "ac_menu" of p to "setup"
-    set metadata tag "ac_cat" of p to {_cat}
+    set metadata tag "ac_menu" of {_p} to "setup"
+    set metadata tag "ac_cat" of {_p} to {_cat}
     
     loop 45 times:
         set slot (loop-number - 1) of {_gui} to gray stained glass pane named " "
@@ -50,12 +53,13 @@ function ac_open_setup(p: player, cat: text):
     set slot 24 of {_gui} to air 
     set slot 40 of {_gui} to lime wool named "&a&lSPEICHERN"
     set slot 44 of {_gui} to barrier named "&c&lABBRECHEN"
-    open {_gui} to p
+    open {_gui} to {_p}
 
 function ac_open_selector(p: player):
+    set {_p} to p
     set {_gui} to chest inventory with 6 rows named "&8» &6Wähle Kategorien"
-    set metadata tag "ac_menu" of p to "selector"
-    set {_item} to p's tool
+    set metadata tag "ac_menu" of {_p} to "selector"
+    set {_item} to {_p}'s tool
     set {_lore} to "%lore of {_item}%"
     set {_s} to 0
     loop {comp_categories::*}:
@@ -64,7 +68,7 @@ function ac_open_selector(p: player):
         else:
             set slot {_s} of {_gui} to gray dye named "&7&l%loop-value%" with lore "&7Status: &cAUS"
         add 1 to {_s}
-    open {_gui} to p
+    open {_gui} to {_p}
 
 # --- 2. COMMAND ---
 
