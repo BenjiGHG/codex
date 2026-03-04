@@ -146,7 +146,7 @@ on inventory click:
     # SELECTOR (Dyes)
     if {_title} is uncolored "{@t_select}":
         cancel event
-        if event-slot is lime dye or gray dye:
+        if event-item is lime dye or gray dye:
             set {_cat} to uncolored name of event-slot
             set {_item} to player's offhand tool
             set {_lore::*} to lore of {_item}
