@@ -1,0 +1,357 @@
+options:
+    p: &8[&6AutoComp&8]
+    owner: benjighg9147
+    c_name: &6&lMulti-Compressor
+    voucher_name: &eAutoComp Gutschein
+    t_voucher: &8» &6Voucher Auswahl
+    t_toggle: &8» &6AutoComp Toggle
+    
+    # GUI Titel
+    t_main: &8» &6AutoComp Hub
+    t_manage: &8» &6AutoComp Verwalten
+    t_setup: &8» &6Setup: &b
+    t_select: &8» &6Wähle Kategorien
+    t_detail: &8» &6Rezepte: &b
+
+# --- 1. HAUPTBEFEHL ---
+command /autocomp [<text>] [<text>]:
+    trigger:
+        if name of player is not "{@owner}":
+            send "{@p} &cDieser Befehl ist nur für {@owner}." to player
+            stop
+        if arg-1 is not set:
+            open_main_menu(player)
+            stop
+        
+        if arg-1 is "get":
+            set {ac_voucher_name::%player's uuid%} to true
+            send "{@p} &6Schreibe den Namen für den Gutschein in den Chat!" to player
+            stop
+        if arg-1 is "gui":
+            open_setup(player, arg-2)
+
+# --- 3. GUI FUNKTIONEN ---
+
+function open_main_menu(p: player):
+    if name of {_p} is not "{@owner}":
+        send "{@p} &cDieses Menü ist nur für {@owner}." to {_p}
+        stop
+    set {_gui} to chest inventory with 3 rows named "{@t_main}"
+    loop 27 times:
+        set slot (loop-number - 1) of {_gui} to gray stained glass pane named " "
+    set slot 11 of {_gui} to minecart with hopper named "&6&lGET COMPRESSOR" with lore "&7Hol dir das Item für die Offhand."
+    set slot 15 of {_gui} to chest named "&b&lAUTO COMPS" with lore "&7Verwalte deine Kategorien", "&7und erstelle neue Rezepte."
+    open {_gui} to {_p}
+
+function open_category_manager(p: player):
+    if name of {_p} is not "{@owner}":
+        send "{@p} &cDieses Menü ist nur für {@owner}." to {_p}
+        stop
+    set {_gui} to chest inventory with 6 rows named "{@t_manage}"
+    set {_s} to 0
+    loop {ac_cats::*}:
+        set slot {_s} of {_gui} to book named "&b&l%loop-value%" with lore "&7Links: &fRezepte ansehen", "&7Rechts: &c&lLÖSCHEN"
+        add 1 to {_s}
+    set slot 49 of {_gui} to anvil named "&a&lNEUE KATEGORIE" with lore "&7Klicke hier, um den Namen", "&7im Chat einzugeben."
+    set slot 53 of {_gui} to barrier named "&c&lZURÜCK"
+    open {_gui} to {_p}
+
+function open_setup(p: player, cat: text):
+    if name of {_p} is not "{@owner}":
+        send "{@p} &cDieses Menü ist nur für {@owner}." to {_p}
+        stop
+    set {_gui} to chest inventory with 5 rows named "{@t_setup}%{_cat}%"
+    loop 45 times:
+        set slot (loop-number - 1) of {_gui} to gray stained glass pane named " "
+    set slot 20 of {_gui} to air 
+    set slot 24 of {_gui} to air 
+    set slot 40 of {_gui} to lime wool named "&a&lREZEPT SPEICHERN"
+    set slot 44 of {_gui} to barrier named "&c&lZURÜCK"
+    open {_gui} to {_p}
+
+# --- 4. CHAT-NAMING LOGIK (STATT SCHILD) ---
+
+on chat:
+    if {ac_voucher_name::%player's uuid%} is set:
+        cancel event
+        delete {ac_voucher_name::%player's uuid%}
+        set {ac_voucher_text::%player's uuid%} to colored message
+        delete {ac_voucher_sel::%player's uuid%::*}
+        open_voucher_selector(player)
+        stop
+
+    if {ac_naming::%player's uuid%} is set:
+        cancel event
+        set {_name} to message
+        delete {ac_naming::%player's uuid%}
+        if {_name} contains " ":
+            send "{@p} &cBitte keine Leerzeichen im Namen!" to player
+            stop
+        send "{@p} &aErstelle Kategorie: &e%{_name}%..." to player
+        wait 2 ticks
+        open_setup(player, {_name})
+
+# --- 5. KLICK-LOGIK ---
+
+on inventory click:
+    set {_title} to uncolored name of event-inventory
+    
+    # HAUPTMENÜ
+    if {_title} is uncolored "{@t_main}":
+        if name of player is not "{@owner}":
+            cancel event
+            close player's inventory
+            send "{@p} &cDieses Menü ist nur für {@owner}." to player
+            stop
+        cancel event
+        if index of event-slot is 11:
+            set {ac_voucher_name::%player's uuid%} to true
+            close player's inventory
+            send "{@p} &6Schreibe den Namen für den Gutschein in den Chat!" to player
+        if index of event-slot is 15:
+            open_category_manager(player)
+
+    # KATEGORIE MANAGER
+    if {_title} is uncolored "{@t_manage}":
+        if name of player is not "{@owner}":
+            cancel event
+            close player's inventory
+            send "{@p} &cDieses Menü ist nur für {@owner}." to player
+            stop
+        cancel event
+        if event-slot is book:
+            set {_cat} to uncolored name of event-slot
+            if click type is left mouse button:
+                open_recipe_view(player, {_cat})
+            else if click type is right mouse button:
+                delete_category(player, {_cat})
+        
+        if index of event-slot is 49: # NEUE KATEGORIE
+            set {ac_naming::%player's uuid%} to true
+            close player's inventory
+            send " " to player
+            send "{@p} &6&lBITTE TIPP DEN NAMEN IN DEN CHAT!" to player
+            send "&7(Beispiel: Erze oder Lapis)" to player
+            send " " to player
+            
+        if index of event-slot is 53:
+            open_main_menu(player)
+
+    # SETUP LOGIK
+    if {_title} contains "Setup:":
+        if name of player is not "{@owner}":
+            cancel event
+            close player's inventory
+            send "{@p} &cDieses Menü ist nur für {@owner}." to player
+            stop
+        if clicked inventory is player's inventory:
+            stop
+        if index of event-slot is 20 or 24:
+            stop
+        cancel event
+        if index of event-slot is 40: # SPEICHERN
+            set {_cat} to {_title}
+            replace all "Setup: " with "" in {_cat}
+            set {_cat} to uncolored {_cat}
+            set {_in} to slot 20 of event-inventory
+            set {_out} to slot 24 of event-inventory
+            if {_in} is air:
+                send "{@p} &cSlots füllen!" to player
+                stop
+            if {_out} is air:
+                send "{@p} &cSlots füllen!" to player
+                stop
+            if {ac_cats::*} does not contain {_cat}:
+                add {_cat} to {ac_cats::*}
+            add 1 to {ac_count::%{_cat}%}
+            set {ac_in::%{_cat}%::%{ac_count::%{_cat}%}%} to {_in}
+            set {ac_out::%{_cat}%::%{ac_count::%{_cat}%}%} to {_out}
+            send "{@p} &aGespeichert!" to player
+            open_category_manager(player)
+        
+        if index of event-slot is 44:
+            open_category_manager(player)
+
+    # SELECTOR (Dyes)
+    if {_title} is uncolored "{@t_select}":
+        if name of player is not "{@owner}":
+            cancel event
+            close player's inventory
+            send "{@p} &cDieses Menü ist nur für {@owner}." to player
+            stop
+        cancel event
+        if event-item is lime dye or gray dye:
+            set {_cat} to uncolored name of event-slot
+            set {_item} to player's offhand tool
+            set {_offhand} to true
+            if lore of {_item} does not contain "&6Aktive Kategorien:":
+                set {_item} to player's tool
+                set {_offhand} to false
+            set {_lore::*} to lore of {_item}
+            if lore of {_item} contains "&8- &e%{_cat}%":
+                remove "&8- &e%{_cat}%" from {_lore::*}
+            else:
+                remove "&8- &7(Keine)" from {_lore::*}
+                add "&8- &e%{_cat}%" to {_lore::*}
+            set lore of {_item} to {_lore::*}
+            if {_offhand} is true:
+                set player's offhand tool to {_item}
+            else:
+                set player's tool to {_item}
+            open_selector(player)
+
+    if {_title} is uncolored "{@t_voucher}":
+        cancel event
+        if event-item is lime dye or gray dye:
+            set {_cat} to uncolored name of event-item
+            if {ac_voucher_sel::%player's uuid%::*} contains {_cat}:
+                remove {_cat} from {ac_voucher_sel::%player's uuid%::*}
+            else:
+                add {_cat} to {ac_voucher_sel::%player's uuid%::*}
+            open_voucher_selector(player)
+        if index of event-slot is 49:
+            if size of {ac_voucher_sel::%player's uuid%::*} = 0:
+                send "{@p} &cBitte mindestens eine Kategorie wählen!" to player
+                stop
+            give_voucher(player)
+            delete {ac_voucher_sel::%player's uuid%::*}
+            delete {ac_voucher_text::%player's uuid%}
+            close player's inventory
+
+    if {_title} is uncolored "{@t_toggle}":
+        cancel event
+        if event-item is lime dye or gray dye:
+            set {_cat} to uncolored name of event-item
+            if {ac_player_enabled::%player's uuid%::%{_cat}%} is true:
+                set {ac_player_enabled::%player's uuid%::%{_cat}%} to false
+                send action bar "&c&l%{_cat}% deaktiviert" to player
+            else:
+                set {ac_player_enabled::%player's uuid%::%{_cat}%} to true
+                send action bar "&a&l%{_cat}% aktiviert" to player
+            open_toggle_menu(player)
+
+# --- 6. HILFSFUNKTIONEN & LOGIK ---
+
+function delete_category(p: player, cat: text):
+    delete {ac_in::%{_cat}%::*}
+    delete {ac_out::%{_cat}%::*}
+    delete {ac_count::%{_cat}%}
+    remove {_cat} from {ac_cats::*}
+    send "{@p} &cKategorie &e%{_cat}% &cgelöscht!" to {_p}
+    open_category_manager({_p})
+
+function open_recipe_view(p: player, cat: text):
+    set {_gui} to chest inventory with 6 rows named "{@t_detail}%{_cat}%"
+    set {_s} to 0
+    loop {ac_in::%{_cat}%::*}:
+        set slot {_s} of {_gui} to {ac_out::%{_cat}%::%loop-index%} with lore "&e&lREZEPT:", "&7In: &f%item amount of {ac_in::%{_cat}%::%loop-index%]}%x %type of {ac_in::%{_cat}%::%loop-index%]}%"
+        add 1 to {_s}
+    set slot 53 of {_gui} to barrier named "&c&lZURÜCK"
+    open {_gui} to {_p}
+
+function open_selector(p: player):
+    if name of {_p} is not "{@owner}":
+        send "{@p} &cDieses Menü ist nur für {@owner}." to {_p}
+        stop
+    set {_gui} to chest inventory with 6 rows named "{@t_select}"
+    set {_item} to {_p}'s offhand tool
+    if lore of {_item} does not contain "&6Aktive Kategorien:":
+        set {_item} to {_p}'s tool
+    set {_s} to 0
+    loop {ac_cats::*}:
+        if lore of {_item} contains "&8- &e%loop-value%":
+            set slot {_s} of {_gui} to lime dye named "&a&l%loop-value%"
+        else:
+            set slot {_s} of {_gui} to gray dye named "&7&l%loop-value%"
+        add 1 to {_s}
+    open {_gui} to {_p}
+
+function open_voucher_selector(p: player):
+    set {_gui} to chest inventory with 6 rows named "{@t_voucher}"
+    set {_s} to 0
+    loop {ac_cats::*}:
+        if {ac_voucher_sel::%{_p}'s uuid%::*} contains "%loop-value%":
+            set slot {_s} of {_gui} to lime dye named "&a&l%loop-value%"
+        else:
+            set slot {_s} of {_gui} to gray dye named "&7&l%loop-value%"
+        add 1 to {_s}
+    set slot 49 of {_gui} to lime wool named "&a&lBESTÄTIGEN" with lore "&7Erstellt den Gutschein."
+    open {_gui} to {_p}
+
+function give_voucher(p: player):
+    set {_name} to {ac_voucher_text::%{_p}'s uuid%}
+    if {_name} is not set:
+        set {_name} to "{@voucher_name}"
+    set {_i} to paper named "%{_name}%"
+    set lore of {_i} to "&7Rechtsklick: &aAutoComp freischalten", "&f", "&6Kategorien:"
+    loop {ac_voucher_sel::%{_p}'s uuid%::*}:
+        add "&8- &e%loop-value%" to lore of {_i}
+    give {_i} to {_p}
+
+function open_toggle_menu(p: player):
+    if size of {ac_player_cats::%{_p}'s uuid%::*} = 0:
+        send "{@p} &cKein AutoComp freigeschaltet." to {_p}
+        stop
+    set {_gui} to chest inventory with 3 rows named "{@t_toggle}"
+    loop 27 times:
+        set slot (loop-number - 1) of {_gui} to gray stained glass pane named " "
+    set {_s} to 0
+    loop {ac_player_cats::%{_p}'s uuid%::*}:
+        if {ac_player_enabled::%{_p}'s uuid%::%loop-value%} is true:
+            set slot {_s} of {_gui} to lime dye named "&a&l%loop-value%" with lore "&7Status: &aAN"
+        else:
+            set slot {_s} of {_gui} to gray dye named "&7&l%loop-value%" with lore "&7Status: &cAUS"
+        add 1 to {_s}
+    open {_gui} to {_p}
+
+on rightclick:
+    set {_voucher} to player's tool
+    if lore of {_voucher} contains "&6Kategorien:":
+        cancel event
+        delete {ac_player_cats::%player's uuid%::*}
+        delete {ac_player_enabled::%player's uuid%::*}
+        loop lore of {_voucher}:
+            if loop-value contains "&8- &e":
+                set {_cat} to loop-value
+                replace all "&8- &e" with "" in {_cat}
+                set {_cat} to uncolored {_cat}
+                add {_cat} to {ac_player_cats::%player's uuid%::*}
+                set {ac_player_enabled::%player's uuid%::%{_cat}%} to false
+        remove 1 of {_voucher} from player
+        send "{@p} &aAutoComp freigeschaltet!" to player
+
+    set {_voucher} to player's offhand tool
+    if lore of {_voucher} contains "&6Kategorien:":
+        cancel event
+        delete {ac_player_cats::%player's uuid%::*}
+        delete {ac_player_enabled::%player's uuid%::*}
+        loop lore of {_voucher}:
+            if loop-value contains "&8- &e":
+                set {_cat} to loop-value
+                replace all "&8- &e" with "" in {_cat}
+                set {_cat} to uncolored {_cat}
+                add {_cat} to {ac_player_cats::%player's uuid%::*}
+                set {ac_player_enabled::%player's uuid%::%{_cat}%} to false
+        remove 1 of {_voucher} from player
+        send "{@p} &aAutoComp freigeschaltet!" to player
+
+command /autocomptoggle:
+    trigger:
+        open_toggle_menu(player)
+
+# TURBO-MATH FÜR FORTUNE 255
+every 2 ticks:
+    loop all players:
+        loop {ac_player_cats::%loop-player's uuid%::*}:
+            set {_cat} to loop-value-1
+            if {ac_player_enabled::%loop-player's uuid%::%{_cat}%} is true:
+                loop {ac_in::%{_cat}%::*}:
+                    set {_id} to loop-index-1
+                    set {_in} to {ac_in::%{_cat}%::%{_id}%}
+                    set {_out} to {ac_out::%{_cat}%::%{_id}%}
+                    set {_req} to item amount of {_in}
+                    set {_has} to amount of {_in} in loop-player's inventory
+                    if {_has} >= {_req}:
+                        set {_mult} to floor({_has} / {_req})
+                        remove ({_mult} * {_req}) of {_in} from loop-player's inventory
+                        give ({_mult} * item amount of {_out}) of {_out} to loop-player
