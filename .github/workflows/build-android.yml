@@ -1,0 +1,31 @@
+name: Build Safe Days APK
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-version: "8.13"
+      - name: Build debug APK
+        working-directory: SafeDaysAndroid
+        run: gradle assembleDebug --stacktrace
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: SafeDays-APK
+          path: SafeDaysAndroid/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
