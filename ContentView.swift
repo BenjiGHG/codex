@@ -5,46 +5,67 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 18) {
-                    header
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color.accentColor.opacity(0.20),
+                        Color(.systemBackground),
+                        Color.accentColor.opacity(0.08)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
 
-                    CounterCard(
-                        title: "Ohne Selbstverletzung",
-                        subtitle: "Jeder sichere Tag zählt.",
-                        symbol: "heart.fill",
-                        days: store.selfHarmDays,
-                        startDate: store.selfHarmStart,
-                        reset: store.resetSelfHarm
-                    )
+                ScrollView {
+                    VStack(spacing: 18) {
+                        header
 
-                    CounterCard(
-                        title: "Ohne Alkohol",
-                        subtitle: "Dein alkoholfreier Streak.",
-                        symbol: "drop.fill",
-                        days: store.alcoholDays,
-                        startDate: store.alcoholStart,
-                        reset: store.resetAlcohol
-                    )
+                        CounterCard(
+                            title: "Ohne Selbstverletzung",
+                            subtitle: "Jeder sichere Tag zählt.",
+                            symbol: "heart.fill",
+                            days: store.selfHarmDays,
+                            startDate: store.selfHarmStart,
+                            tint: .pink,
+                            reset: store.resetSelfHarm
+                        )
 
-                    Text("Die App speichert deine Daten nur lokal auf diesem Gerät.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.top, 4)
+                        CounterCard(
+                            title: "Ohne Alkohol",
+                            subtitle: "Dein alkoholfreier Streak.",
+                            symbol: "drop.fill",
+                            days: store.alcoholDays,
+                            startDate: store.alcoholStart,
+                            tint: .blue,
+                            reset: store.resetAlcohol
+                        )
+
+                        Text("Deine Daten bleiben lokal auf diesem Gerät.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.top, 2)
+                    }
+                    .padding()
                 }
-                .padding()
             }
-            .background(Color(.systemGroupedBackground))
             .navigationTitle("Safe Days")
+            .toolbarTitleDisplayMode(.large)
         }
     }
 
     private var header: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "leaf.fill")
-                .font(.system(size: 38))
-                .foregroundStyle(.green)
+        VStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(.ultraThinMaterial)
+                    .frame(width: 78, height: 78)
+
+                Image(systemName: "leaf.fill")
+                    .font(.system(size: 34, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
+            }
 
             Text("Schritt für Schritt")
                 .font(.title2.bold())
@@ -52,7 +73,8 @@ struct ContentView: View {
             Text("Heute zählt genauso wie morgen.")
                 .foregroundStyle(.secondary)
         }
-        .padding(.top, 10)
+        .frame(maxWidth: .infinity)
+        .padding(.top, 8)
     }
 }
 
@@ -62,44 +84,62 @@ struct CounterCard: View {
     let symbol: String
     let days: Int
     let startDate: Date?
+    let tint: Color
     let reset: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
+        VStack(alignment: .leading, spacing: 15) {
+            HStack(spacing: 12) {
                 Image(systemName: symbol)
-                    .font(.title2)
-                    .foregroundStyle(.green)
-                Text(title)
-                    .font(.headline)
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(tint)
+                    .frame(width: 42, height: 42)
+                    .background(tint.opacity(0.14), in: Circle())
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.headline)
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
                 Spacer()
             }
 
-            Text("\(days)")
-                .font(.system(size: 54, weight: .bold, design: .rounded))
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("\(days)")
+                    .font(.system(size: 58, weight: .bold, design: .rounded))
+                    .contentTransition(.numericText())
 
-            Text(days == 1 ? "Tag" : "Tage")
-                .foregroundStyle(.secondary)
-
-            Text(subtitle)
-                .foregroundStyle(.secondary)
-
-            if let startDate {
-                Text("Seit \(startDate.formatted(date: .abbreviated, time: .omitted))")
-                    .font(.footnote)
+                Text(days == 1 ? "Tag" : "Tage")
+                    .font(.title3.weight(.medium))
                     .foregroundStyle(.secondary)
             }
 
-            Button("Startdatum zurücksetzen", role: .destructive) {
-                reset()
+            if let startDate {
+                Label(
+                    "Seit \(startDate.formatted(date: .abbreviated, time: .omitted))",
+                    systemImage: "calendar"
+                )
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            }
+
+            Button(role: .destructive, action: reset) {
+                Label("Startdatum zurücksetzen", systemImage: "arrow.counterclockwise")
             }
             .buttonStyle(.bordered)
+            .tint(.red)
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background)
-        .clipShape(RoundedRectangle(cornerRadius: 24))
-        .shadow(color: .black.opacity(0.06), radius: 12, y: 5)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .strokeBorder(.white.opacity(0.22))
+        }
+        .shadow(color: .black.opacity(0.10), radius: 20, y: 8)
     }
 }
 
@@ -122,8 +162,8 @@ final class CounterStore: ObservableObject {
 
         if alcoholStart == nil {
             let now = Date()
-            alcoholStart = now
-            UserDefaults.standard.set(now, forKey: alcoholKey)
+            self.alcoholStart = now
+            UserDefaults.standard.set(now, forKey: self.alcoholKey)
         }
     }
 
