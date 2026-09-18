@@ -1,25 +1,27 @@
-# Safe Days iOS
+# Safe Days
 
-Eine moderne SwiftUI-iOS-App mit Glass-Design.
+## Android APK
 
-## Funktionen
+Die Android-Version hat das gleiche moderne Glass-/Material-Design wie die iOS-Version.
+
+### APK herunterladen
+
+**[📱 Safe Days APK – GitHub Actions öffnen](https://github.com/BenjiGHG/codex/actions/workflows/build-android.yml)**
+
+Öffne dort den neuesten erfolgreichen Build „Build Safe Days APK“. Unter **Artifacts** kannst du **SafeDays-APK** herunterladen.
+
+### Funktionen
 - ❤️ Tage ohne Selbstverletzung
 - 💧 Tage ohne Alkohol
-- 🫧 iOS Glass / Material Design
-- 🎨 automatische Anpassung an Hell-/Dunkelmodus und die iOS-Akzentfarbe
+- 🫧 Glass-/Material-Design
 - 📅 Startdatum
 - 🔄 Zurücksetzen
-- 🔒 Speicherung nur lokal auf dem Gerät
+- 🔒 Speicherung lokal auf dem Gerät
 
-## Komplettes iOS-Projekt herunterladen
+## iOS
 
-**[⬇️ iOS-Projekt als ZIP von GitHub herunterladen](https://github.com/BenjiGHG/codex/archive/refs/heads/main.zip)**
+**[📱 iOS-Projekt auf GitHub](https://github.com/BenjiGHG/codex)**
 
-Oder direkt zum Repository:
-**https://github.com/BenjiGHG/codex**
+**[⬇️ iOS-Projekt als ZIP](https://github.com/BenjiGHG/codex/archive/refs/heads/main.zip)**
 
-## Öffnen
-
-Nach dem Download die ZIP entpacken und die Dateien in ein iOS-SwiftUI-Projekt in Xcode übernehmen.
-
-Hinweis: Für die Installation auf einem iPhone muss die App mit einem Apple-Entwicklerkonto signiert werden.
+Hinweis: Die iOS-App muss für ein iPhone mit Apples Signierung gebaut werden.
