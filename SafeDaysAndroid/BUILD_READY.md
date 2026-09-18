@@ -1,0 +1,1 @@
+APK build configuration fixed: AndroidX enabled.
