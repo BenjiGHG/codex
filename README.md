@@ -1,12 +1,23 @@
 # Safe Days iOS
 
-Eine einfache SwiftUI-App mit zwei unabhängigen Zählern:
-- Tage ohne Selbstverletzung
-- Tage ohne Alkohol
+Eine moderne SwiftUI-iOS-App mit einem Glass-Design.
 
-Die App speichert die Startdaten lokal auf dem Gerät. Sie ist kein medizinisches Angebot und ersetzt keine professionelle Hilfe.
+## Funktionen
+- ❤️ Tage ohne Selbstverletzung
+- 💧 Tage ohne Alkohol
+- 🫧 iOS Glass / Material Design
+- 🎨 automatische Anpassung an Hell-/Dunkelmodus und die iOS-Akzentfarbe
+- 📅 Startdatum
+- 🔄 Zurücksetzen
+- 🔒 Speicherung nur lokal auf dem Gerät
 
-## Start
-1. Repository in Xcode öffnen bzw. die Dateien in ein neues iOS-SwiftUI-Projekt übernehmen.
-2. Deployment Target auf iOS 17 oder neuer setzen.
-3. Bauen und auf dem iPhone testen.
+## iOS-Projekt herunterladen
+
+**Komplette Projekt-ZIP:** [SafeDays-iOS-Xcode.zip](https://github.com/BenjiGHG/codex/raw/main/SafeDays-iOS-Xcode.zip)
+
+Alternativ kannst du einzelne Dateien direkt im Repository öffnen.
+
+## Öffnen
+Das Projekt ist für Xcode und iOS 17+ vorgesehen.
+
+Hinweis: Für die Installation auf einem iPhone muss die App mit einem Apple-Entwicklerkonto signiert werden.
