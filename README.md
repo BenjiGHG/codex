@@ -1,6 +1,6 @@
 # Safe Days iOS
 
-Eine moderne SwiftUI-iOS-App mit einem Glass-Design.
+Eine moderne SwiftUI-iOS-App mit Glass-Design.
 
 ## Funktionen
 - ❤️ Tage ohne Selbstverletzung
@@ -11,13 +11,15 @@ Eine moderne SwiftUI-iOS-App mit einem Glass-Design.
 - 🔄 Zurücksetzen
 - 🔒 Speicherung nur lokal auf dem Gerät
 
-## iOS-Projekt herunterladen
+## Komplettes iOS-Projekt herunterladen
 
-**Komplette Projekt-ZIP:** [SafeDays-iOS-Xcode.zip](https://github.com/BenjiGHG/codex/raw/main/SafeDays-iOS-Xcode.zip)
+**[⬇️ iOS-Projekt als ZIP von GitHub herunterladen](https://github.com/BenjiGHG/codex/archive/refs/heads/main.zip)**
 
-Alternativ kannst du einzelne Dateien direkt im Repository öffnen.
+Oder direkt zum Repository:
+**https://github.com/BenjiGHG/codex**
 
 ## Öffnen
-Das Projekt ist für Xcode und iOS 17+ vorgesehen.
+
+Nach dem Download die ZIP entpacken und die Dateien in ein iOS-SwiftUI-Projekt in Xcode übernehmen.
 
 Hinweis: Für die Installation auf einem iPhone muss die App mit einem Apple-Entwicklerkonto signiert werden.
